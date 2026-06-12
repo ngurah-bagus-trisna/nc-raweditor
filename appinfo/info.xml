@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>raweditor</id>
+	<name>RAW Editor</name>
+	<summary>View, edit, and export Fujifilm .raf RAW photos</summary>
+	<description><![CDATA[
+Browse a gallery of Fujifilm .raf files from selected folders, preview RAW images,
+apply non-destructive adjustments, and export high-quality JPEG files.
+	]]></description>
+	<version>0.1.0</version>
+	<licence>agpl</licence>
+	<author mail="dev@localhost">RAW Editor</author>
+	<namespace>RawEditor</namespace>
+	<category>multimedia</category>
+	<category>tools</category>
+	<dependencies>
+		<php min-version="8.1" min-int-size="64" />
+		<nextcloud min-version="30" max-version="34" />
+	</dependencies>
+	<repair-steps>
+		<install>
+			<step>OCA\RawEditor\Migration\PythonSetupStep</step>
+		</install>
+	</repair-steps>
+	<settings>
+		<personal>OCA\RawEditor\Settings\PersonalSettings</personal>
+		<personal-section>OCA\RawEditor\Settings\PersonalSection</personal-section>
+	</settings>
+	<navigations>
+		<navigation>
+			<name>RAW Editor</name>
+			<route>raweditor.page.index</route>
+			<icon>raweditor.svg</icon>
+		</navigation>
+	</navigations>
+</info>

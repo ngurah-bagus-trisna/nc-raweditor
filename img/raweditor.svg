@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="#ffffff">
+  <rect x="6" y="14" width="52" height="40" rx="4" fill="none" stroke="#ffffff" stroke-width="3"/>
+  <circle cx="32" cy="34" r="12" fill="none" stroke="#ffffff" stroke-width="3"/>
+  <circle cx="32" cy="34" r="5" fill="#ffffff"/>
+  <rect x="14" y="8" width="14" height="8" rx="2" fill="#ffffff"/>
+  <text x="44" y="24" font-size="10" font-family="sans-serif" font-weight="bold" fill="#ffffff">RAW</text>
+</svg>

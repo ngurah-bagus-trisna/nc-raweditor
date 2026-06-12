@@ -1,0 +1,16 @@
+/node_modules/
+/vendor/
+/.venv/
+__pycache__/
+*.pyc
+/bin/dnglab
+/.dnglab-cargo/
+/.cargo-home/
+/js/*.js
+/js/*.js.map
+/css/*.css
+/css/*.css.map
+/.idea/
+/.vscode/
+*.swp
+.DS_Store
