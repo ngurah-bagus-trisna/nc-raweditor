@@ -6,7 +6,13 @@
 <template>
 	<div class="raweditor-gallery">
 		<div class="raweditor-gallery__header">
-			<h2>{{ t('raweditor', 'RAF Library') }}</h2>
+			<div class="raweditor-gallery__title">
+				<h2>{{ t('raweditor', 'RAF Library') }}</h2>
+				<span v-if="scanStatusLabel" class="raweditor-gallery__scan-status">
+					<NcLoadingIcon v-if="isScanning" :size="16" />
+					{{ scanStatusLabel }}
+				</span>
+			</div>
 			<div class="raweditor-gallery__actions">
 				<NcButton
 					v-if="selectedIds.length > 0"
@@ -42,7 +48,7 @@
 		<NcEmptyContent
 			v-if="!loading && files.length === 0"
 			:name="t('raweditor', 'No .raf files found')"
-			:description="t('raweditor', 'Add Fujifilm .raf files to your Nextcloud and click Rescan.')">
+			:description="emptyDescription">
 			<template #icon>
 				<ImageMultiple :size="64" />
 			</template>
@@ -71,7 +77,11 @@
 						@click.stop
 						@change="toggleSelect(file.fileid)">
 				</div>
+				<div v-if="!file.thumbReady" class="raweditor-gallery__thumb raweditor-gallery__thumb--pending">
+					<NcLoadingIcon :size="24" />
+				</div>
 				<img
+					v-else
 					class="raweditor-gallery__thumb"
 					:src="thumbUrl(file.fileid)"
 					:alt="file.name"
@@ -130,9 +140,30 @@ export default {
 			selectedIds: [],
 			showDngDialog: false,
 			convertingDng: false,
+			scanState: 'idle',
+			thumbsPending: 0,
+			pollTimer: null,
 		}
 	},
 	computed: {
+		isScanning() {
+			return this.scanState === 'scanning' || this.scanState === 'warming'
+		},
+		scanStatusLabel() {
+			if (this.scanState === 'scanning') {
+				return this.t('raweditor', 'Scanning library…')
+			}
+			if (this.scanState === 'warming') {
+				return this.t('raweditor', 'Preparing thumbnails ({count})', { count: this.thumbsPending })
+			}
+			return ''
+		},
+		emptyDescription() {
+			if (this.isScanning) {
+				return this.t('raweditor', 'Scanning your Nextcloud folders for .raf files in the background.')
+			}
+			return this.t('raweditor', 'Add Fujifilm .raf files to your Nextcloud. The library updates automatically.')
+		},
 		developLabel() {
 			return this.t('raweditor', 'Develop ({count})', { count: this.selectedIds.length })
 		},
@@ -142,6 +173,12 @@ export default {
 	},
 	mounted() {
 		this.loadGallery()
+		this.pollTimer = setInterval(() => this.pollScanStatus(), 8000)
+	},
+	beforeDestroy() {
+		if (this.pollTimer) {
+			clearInterval(this.pollTimer)
+		}
 	},
 	methods: {
 		thumbUrl(fileId) {
@@ -163,14 +200,8 @@ export default {
 				this.total = res.data.total || 0
 				this.offset += newFiles.length
 
-				if (!append && this.total === 0) {
-					await axios.post(generateUrl('/apps/raweditor/api/v1/gallery/rescan'))
-					const rescanRes = await axios.get(generateUrl('/apps/raweditor/api/v1/gallery'), {
-						params: { limit: this.limit, offset: 0 },
-					})
-					this.files = rescanRes.data.files || []
-					this.total = rescanRes.data.total || 0
-					this.offset = this.files.length
+				if (!append) {
+					await this.pollScanStatus()
 				}
 			} catch (e) {
 				console.error(e)
@@ -181,6 +212,28 @@ export default {
 		},
 		loadMore() {
 			this.loadGallery(true)
+		},
+		async pollScanStatus() {
+			try {
+				const res = await axios.get(generateUrl('/apps/raweditor/api/v1/gallery/status'))
+				const { state, thumbsPending, total } = res.data
+				const prevTotal = this.total
+				const prevPending = this.thumbsPending
+				this.scanState = state || 'idle'
+				this.thumbsPending = thumbsPending || 0
+
+				const needsRefresh = total > prevTotal
+					|| (prevPending > 0 && this.thumbsPending < prevPending)
+					|| (this.files.length > 0 && this.files.some((f) => !f.thumbReady) && this.thumbsPending < prevPending)
+
+				if (needsRefresh && !this.loading && !this.loadingMore) {
+					await this.loadGallery()
+				} else if (total !== undefined) {
+					this.total = total
+				}
+			} catch (e) {
+				console.error(e)
+			}
 		},
 		async rescan() {
 			this.loading = true
@@ -269,6 +322,28 @@ export default {
 	align-items: center;
 	justify-content: space-between;
 	margin-bottom: 16px;
+}
+
+.raweditor-gallery__title {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.raweditor-gallery__scan-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+}
+
+.raweditor-gallery__thumb--pending {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--color-background-dark);
+	min-height: 120px;
 }
 
 .raweditor-gallery__actions {

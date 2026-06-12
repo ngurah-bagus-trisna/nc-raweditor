@@ -27,11 +27,19 @@ class RawFileService {
 	}
 
 	public function getUserFolder(): Folder {
-		return $this->rootFolder->getUserFolder($this->getUserId());
+		return $this->getUserFolderFor($this->getUserId());
+	}
+
+	public function getUserFolderFor(string $uid): Folder {
+		return $this->rootFolder->getUserFolder($uid);
 	}
 
 	public function getFileById(int $fileId): File {
-		$userFolder = $this->getUserFolder();
+		return $this->getFileByIdFor($fileId, $this->getUserId());
+	}
+
+	public function getFileByIdFor(int $fileId, string $uid): File {
+		$userFolder = $this->getUserFolderFor($uid);
 		$node = $userFolder->getFirstNodeById($fileId);
 		if ($node === null || !($node instanceof File)) {
 			throw new NotFoundException('File not found');
@@ -43,7 +51,11 @@ class RawFileService {
 	}
 
 	public function getFolderById(int $folderId): Folder {
-		$userFolder = $this->getUserFolder();
+		return $this->getFolderByIdFor($folderId, $this->getUserId());
+	}
+
+	public function getFolderByIdFor(int $folderId, string $uid): Folder {
+		$userFolder = $this->getUserFolderFor($uid);
 		$node = $userFolder->getFirstNodeById($folderId);
 		if ($node === null || !($node instanceof Folder)) {
 			throw new NotFoundException('Folder not found');
@@ -84,16 +96,24 @@ class RawFileService {
 	}
 
 	/**
-	 * @return array{fileid: int, name: string, path: string, mtime: int, size: int}
+	 * @return array{fileid: int, name: string, path: string, mtime: int, size: int, thumbReady: bool}
 	 */
-	public function fileToArray(File $file): array {
+	public function fileToArray(File $file, bool $thumbReady = true): array {
 		$userFolder = $this->getUserFolder();
+		return $this->fileToArrayFor($file, $userFolder, $thumbReady);
+	}
+
+	/**
+	 * @return array{fileid: int, name: string, path: string, mtime: int, size: int, thumbReady: bool}
+	 */
+	public function fileToArrayFor(File $file, Folder $userFolder, bool $thumbReady = true): array {
 		return [
 			'fileid' => $file->getId(),
 			'name' => $file->getName(),
 			'path' => $userFolder->getRelativePath($file->getPath()) ?? $file->getName(),
 			'mtime' => $file->getMTime(),
 			'size' => $file->getSize(),
+			'thumbReady' => $thumbReady,
 		];
 	}
 }

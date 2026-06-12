@@ -17,6 +17,8 @@ use OCP\AppFramework\Db\Entity;
  * @method void setMtime(int $mtime)
  * @method int getSize()
  * @method void setSize(int $size)
+ * @method int getThumbReady()
+ * @method void setThumbReady(int $thumbReady)
  */
 class RawFile extends Entity {
 	protected $fileid;
@@ -24,12 +26,14 @@ class RawFile extends Entity {
 	protected $folderId;
 	protected $mtime;
 	protected $size;
+	protected $thumbReady;
 
 	public function __construct() {
 		$this->addType('fileid', 'integer');
 		$this->addType('folderId', 'integer');
 		$this->addType('mtime', 'integer');
 		$this->addType('size', 'integer');
+		$this->addType('thumbReady', 'integer');
 	}
 
 	public function getId(): int {

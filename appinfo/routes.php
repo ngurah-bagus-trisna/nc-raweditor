@@ -13,6 +13,8 @@ return [
 		['name' => 'gallery#index', 'url' => '/api/v1/gallery', 'verb' => 'GET'],
 		['name' => 'gallery#stats', 'url' => '/api/v1/gallery/stats', 'verb' => 'GET'],
 		['name' => 'gallery#rescan', 'url' => '/api/v1/gallery/rescan', 'verb' => 'POST'],
+		['name' => 'gallery#status', 'url' => '/api/v1/gallery/status', 'verb' => 'GET'],
+		['name' => 'gallery#scan', 'url' => '/api/v1/gallery/scan', 'verb' => 'POST'],
 		['name' => 'gallery#fileInfo', 'url' => '/api/v1/files/{fileId}', 'verb' => 'GET'],
 		['name' => 'metadata#get', 'url' => '/api/v1/files/{fileId}/metadata', 'verb' => 'GET'],
 

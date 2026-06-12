@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\RawEditor\Service;
 
+use OCA\RawEditor\Db\RawFileMapper;
 use OCP\Files\File;
 use OCP\Files\IAppData;
 use OCP\Files\NotFoundException;
@@ -15,6 +16,7 @@ class PreviewService {
 		private readonly RawFileService $rawFileService,
 		private readonly PythonService $pythonService,
 		private readonly IAppData $appData,
+		private readonly RawFileMapper $rawFileMapper,
 	) {
 	}
 
@@ -24,6 +26,9 @@ class PreviewService {
 		$cached = $this->getCachedFile($folder, $cacheKey);
 
 		if ($cached !== null) {
+			if ($tier === 'thumb') {
+				$this->rawFileMapper->markThumbReady($file->getId());
+			}
 			return $cached->getContent();
 		}
 
@@ -65,11 +70,28 @@ class PreviewService {
 			$folder->newFile($cacheKey, $content);
 		}
 
+		if ($tier === 'thumb') {
+			$this->rawFileMapper->markThumbReady($file->getId());
+		}
+
 		return $content;
 	}
 
 	public function renderWithParams(File $file, array $params): string {
 		return $this->getPreviewContent($file, 'large', $params);
+	}
+
+	public function hasThumbCache(File $file): bool {
+		$cacheKey = $this->getCacheKey($file, 'thumb', null);
+		$folder = $this->getPreviewFolder();
+		return $this->getCachedFile($folder, $cacheKey) !== null;
+	}
+
+	public function warmThumb(File $file): void {
+		if ($this->hasThumbCache($file)) {
+			return;
+		}
+		$this->getPreviewContent($file, 'thumb');
 	}
 
 	private function getCacheKey(File $file, string $tier, ?array $params): string {

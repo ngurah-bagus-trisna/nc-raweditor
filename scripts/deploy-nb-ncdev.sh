@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Deploy raweditor app to nb-ncdev LXC container only.
+# Deploy raweditor app to an LXC Nextcloud container (default: nb-ncdev).
 set -euo pipefail
 
-CONTAINER="nb-ncdev"
+CONTAINER="${1:-nb-ncdev}"
 NC_ROOT="/var/www/nextcloud"
 APP_ID="raweditor"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -50,5 +50,6 @@ echo "==> Running migrations"
 lxc exec "${CONTAINER}" -- bash -c "cd ${NC_ROOT} && sudo -u www-data php occ migrations:execute ${APP_ID} 0 2>/dev/null || true"
 lxc exec "${CONTAINER}" -- bash -c "cd ${NC_ROOT} && sudo -u www-data php occ migrations:execute ${APP_ID} 1 2>/dev/null || true"
 lxc exec "${CONTAINER}" -- bash -c "cd ${NC_ROOT} && sudo -u www-data php occ migrations:execute ${APP_ID} 2 2>/dev/null || true"
+lxc exec "${CONTAINER}" -- bash -c "cd ${NC_ROOT} && sudo -u www-data php occ migrations:execute ${APP_ID} 3 2>/dev/null || true"
 
 echo "Deploy complete. App available at Nextcloud -> RAW Editor"

@@ -18,6 +18,9 @@ apply non-destructive adjustments, and export high-quality JPEG files.
 		<php min-version="8.1" min-int-size="64" />
 		<nextcloud min-version="30" max-version="34" />
 	</dependencies>
+	<background-jobs>
+		<job>OCA\RawEditor\BackgroundJob\GalleryMaintenanceJob</job>
+	</background-jobs>
 	<repair-steps>
 		<install>
 			<step>OCA\RawEditor\Migration\PythonSetupStep</step>

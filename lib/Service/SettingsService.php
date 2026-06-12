@@ -34,7 +34,10 @@ class SettingsService {
 	}
 
 	public function getScanMode(): string {
-		$uid = $this->getUserId();
+		return $this->getScanModeForUser($this->getUserId());
+	}
+
+	public function getScanModeForUser(string $uid): string {
 		$mode = $this->config->getUserValue($uid, Application::APP_ID, self::CONFIG_KEY_SCAN_MODE, self::SCAN_MODE_ALL);
 		return $mode === self::SCAN_MODE_SELECTED ? self::SCAN_MODE_SELECTED : self::SCAN_MODE_ALL;
 	}
@@ -46,17 +49,27 @@ class SettingsService {
 	}
 
 	public function scansAllFolders(): bool {
-		return $this->getScanMode() === self::SCAN_MODE_ALL;
+		return $this->scansAllFoldersForUser($this->getUserId());
+	}
+
+	public function scansAllFoldersForUser(string $uid): bool {
+		return $this->getScanModeForUser($uid) === self::SCAN_MODE_ALL;
 	}
 
 	/**
 	 * @return int[]
 	 */
 	public function getFolderIds(): array {
-		if ($this->scansAllFolders()) {
+		return $this->getFolderIdsForUser($this->getUserId());
+	}
+
+	/**
+	 * @return int[]
+	 */
+	public function getFolderIdsForUser(string $uid): array {
+		if ($this->scansAllFoldersForUser($uid)) {
 			return [];
 		}
-		$uid = $this->getUserId();
 		$raw = $this->config->getUserValue($uid, Application::APP_ID, self::CONFIG_KEY_FOLDERS, '[]');
 		$ids = json_decode($raw, true);
 		if (!is_array($ids)) {
@@ -131,6 +144,14 @@ class SettingsService {
 	}
 
 	public function getUserRootFolder(): Folder {
-		return $this->rootFolder->getUserFolder($this->getUserId());
+		return $this->getUserRootFolderFor($this->getUserId());
+	}
+
+	public function getUserRootFolderFor(string $uid): Folder {
+		return $this->rootFolder->getUserFolder($uid);
+	}
+
+	public function markGalleryActive(string $uid): void {
+		$this->config->setUserValue($uid, Application::APP_ID, 'gallery_active', '1');
 	}
 }

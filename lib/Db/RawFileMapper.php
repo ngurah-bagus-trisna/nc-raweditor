@@ -59,11 +59,89 @@ class RawFileMapper extends QBMapper {
 			$existing = $this->findByFileId((int)$entity->getFileid());
 			$existing->setOwner($entity->getOwner());
 			$existing->setFolderId($entity->getFolderId());
+			if ($existing->getMtime() !== $entity->getMtime()) {
+				$existing->setThumbReady(0);
+			}
 			$existing->setMtime($entity->getMtime());
 			$existing->setSize($entity->getSize());
 			$this->update($existing);
 		} catch (DoesNotExistException) {
 			$this->insert($entity);
+		}
+	}
+
+	public function deleteByFileId(int $fileId): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->delete($this->getTableName())
+			->where($qb->expr()->eq('fileid', $qb->createNamedParameter($fileId)));
+		$qb->executeStatement();
+	}
+
+	/**
+	 * @return int[]
+	 */
+	public function findAllFileIdsByOwner(string $owner): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('fileid')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('owner', $qb->createNamedParameter($owner)));
+		$result = $qb->executeQuery();
+		$ids = [];
+		while (($row = $result->fetch()) !== false) {
+			$ids[] = (int)$row['fileid'];
+		}
+		$result->closeCursor();
+		return $ids;
+	}
+
+	/**
+	 * @return string[]
+	 */
+	public function findDistinctOwners(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->selectDistinct('owner')
+			->from($this->getTableName());
+		$result = $qb->executeQuery();
+		$owners = [];
+		while (($row = $result->fetch()) !== false) {
+			$owners[] = (string)$row['owner'];
+		}
+		$result->closeCursor();
+		return $owners;
+	}
+
+	public function countThumbsPending(string $owner): int {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select($qb->createFunction('COUNT(*)'))
+			->from($this->getTableName())
+			->where($qb->expr()->eq('owner', $qb->createNamedParameter($owner)))
+			->andWhere($qb->expr()->eq('thumb_ready', $qb->createNamedParameter(0)));
+		$result = $qb->executeQuery();
+		$count = (int)$result->fetchOne();
+		$result->closeCursor();
+		return $count;
+	}
+
+	/**
+	 * @return RawFile[]
+	 */
+	public function findWithoutThumb(string $owner, int $limit): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('*')
+			->from($this->getTableName())
+			->where($qb->expr()->eq('owner', $qb->createNamedParameter($owner)))
+			->andWhere($qb->expr()->eq('thumb_ready', $qb->createNamedParameter(0)))
+			->orderBy('mtime', 'DESC')
+			->setMaxResults($limit);
+		return $this->findEntities($qb);
+	}
+
+	public function markThumbReady(int $fileId): void {
+		try {
+			$entity = $this->findByFileId($fileId);
+			$entity->setThumbReady(1);
+			$this->update($entity);
+		} catch (DoesNotExistException) {
 		}
 	}
 }

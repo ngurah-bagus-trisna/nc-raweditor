@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace OCA\RawEditor\Service;
 
-use OCA\RawEditor\Db\RawFile;
 use OCA\RawEditor\Db\RawFileMapper;
 use OCP\Files\File;
-use OCP\Files\Folder;
 use OCP\Files\NotFoundException;
 
 class GalleryService {
@@ -17,6 +15,7 @@ class GalleryService {
 		private readonly SettingsService $settingsService,
 		private readonly RawFileService $rawFileService,
 		private readonly RawFileMapper $rawFileMapper,
+		private readonly ScanService $scanService,
 	) {
 	}
 
@@ -25,8 +24,16 @@ class GalleryService {
 	 */
 	public function listFiles(int $limit = 50, int $offset = 0): array {
 		$owner = $this->rawFileService->getUserId();
-		$entities = $this->rawFileMapper->findByOwner($owner, $limit, $offset);
+		$this->scanService->markGalleryActive($owner);
+		$this->scanService->queueUserScan($owner);
+
 		$total = $this->rawFileMapper->countByOwner($owner);
+		if ($total === 0 && $offset === 0) {
+			$this->scanService->incrementalScan($owner);
+			$total = $this->rawFileMapper->countByOwner($owner);
+		}
+
+		$entities = $this->rawFileMapper->findByOwner($owner, $limit, $offset);
 		$userFolder = $this->rawFileService->getUserFolder();
 		$files = [];
 
@@ -34,7 +41,11 @@ class GalleryService {
 			try {
 				$node = $userFolder->getFirstNodeById($entity->getFileid());
 				if ($node instanceof File && UtilsService::isRafFile($node->getName())) {
-					$files[] = $this->rawFileService->fileToArray($node);
+					$files[] = $this->rawFileService->fileToArrayFor(
+						$node,
+						$userFolder,
+						(int)$entity->getThumbReady() === 1
+					);
 				}
 			} catch (NotFoundException) {
 				continue;
@@ -61,46 +72,8 @@ class GalleryService {
 	public function rescan(): int {
 		$owner = $this->rawFileService->getUserId();
 		$this->rawFileMapper->deleteByOwner($owner);
-
-		if ($this->settingsService->scansAllFolders()) {
-			return $this->scanFolder(
-				$this->settingsService->getUserRootFolder(),
-				self::FOLDER_ID_ALL,
-				$owner
-			);
-		}
-
-		$count = 0;
-		foreach ($this->settingsService->getFolderIds() as $folderId) {
-			try {
-				$folder = $this->rawFileService->getFolderById($folderId);
-				$count += $this->scanFolder($folder, $folderId, $owner);
-			} catch (NotFoundException) {
-				continue;
-			}
-		}
-
-		return $count;
-	}
-
-	private function scanFolder(Folder $folder, int $rootFolderId, string $owner): int {
-		$count = 0;
-
-		foreach ($folder->getDirectoryListing() as $node) {
-			if ($node instanceof Folder) {
-				$count += $this->scanFolder($node, $rootFolderId, $owner);
-			} elseif ($node instanceof File && UtilsService::isRafFile($node->getName())) {
-				$entity = new RawFile();
-				$entity->setFileid($node->getId());
-				$entity->setOwner($owner);
-				$entity->setFolderId($rootFolderId);
-				$entity->setMtime($node->getMTime());
-				$entity->setSize($node->getSize());
-				$this->rawFileMapper->upsert($entity);
-				$count++;
-			}
-		}
-
-		return $count;
+		$result = $this->scanService->incrementalScan($owner);
+		$this->scanService->queueUserScan($owner);
+		return $result['total'];
 	}
 }

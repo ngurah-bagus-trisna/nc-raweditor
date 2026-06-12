@@ -7,6 +7,7 @@ namespace OCA\RawEditor\Controller;
 use OCA\RawEditor\AppInfo\Application;
 use OCA\RawEditor\Service\GalleryService;
 use OCA\RawEditor\Service\RawFileService;
+use OCA\RawEditor\Service\ScanService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\DataResponse;
@@ -17,6 +18,7 @@ class GalleryController extends Controller {
 		IRequest $request,
 		private readonly GalleryService $galleryService,
 		private readonly RawFileService $rawFileService,
+		private readonly ScanService $scanService,
 	) {
 		parent::__construct(Application::APP_ID, $request);
 	}
@@ -37,6 +39,20 @@ class GalleryController extends Controller {
 	public function rescan(): DataResponse {
 		$count = $this->galleryService->rescan();
 		return new DataResponse(['scanned' => $count]);
+	}
+
+	#[NoAdminRequired]
+	public function status(): DataResponse {
+		$uid = $this->rawFileService->getUserId();
+		return new DataResponse($this->scanService->getStatus($uid));
+	}
+
+	#[NoAdminRequired]
+	public function scan(): DataResponse {
+		$uid = $this->rawFileService->getUserId();
+		$this->scanService->markGalleryActive($uid);
+		$this->scanService->queueUserScan($uid);
+		return new DataResponse(['queued' => true]);
 	}
 
 	#[NoAdminRequired]

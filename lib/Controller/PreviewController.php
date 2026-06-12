@@ -34,7 +34,8 @@ class PreviewController extends Controller {
 			}
 			$content = $this->previewService->getPreviewContent($file, $tier);
 			$response = new DataDownloadResponse($content, 'preview.jpg', 'image/jpeg');
-			$response->addHeader('Cache-Control', 'private, max-age=3600');
+			$maxAge = $tier === 'thumb' ? 604800 : 3600;
+			$response->addHeader('Cache-Control', 'private, max-age=' . $maxAge);
 			return $response;
 		} catch (\Exception $e) {
 			return new DataResponse(['error' => $e->getMessage()], 400);
