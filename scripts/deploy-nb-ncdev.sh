@@ -40,8 +40,8 @@ lxc exec "${CONTAINER}" -- bash -c "cd ${NC_ROOT}/apps/${APP_ID} && python3 -m v
 echo "==> Installing PHP autoload (composer)"
 lxc exec "${CONTAINER}" -- bash -c "cd ${NC_ROOT}/apps/${APP_ID} && COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload -o --classmap-authoritative --no-interaction"
 
-echo "==> Installing dnglab for RAF -> DNG conversion (may build from source)"
-lxc exec "${CONTAINER}" -- bash -c "cd ${NC_ROOT}/apps/${APP_ID} && apt-get install -y -qq cargo rustc pkg-config libssl-dev 2>/dev/null || true && bash scripts/install-dnglab.sh"
+echo "==> Installing dnglab for RAF -> DNG conversion (X-T30 III support)"
+lxc exec "${CONTAINER}" -- bash -c "cd ${NC_ROOT}/apps/${APP_ID} && apt-get install -y -qq curl pkg-config libssl-dev build-essential 2>/dev/null || true && bash scripts/install-dnglab.sh"
 
 echo "==> Fixing permissions"
 lxc exec "${CONTAINER}" -- bash -c "chown -R www-data:www-data ${NC_ROOT}/apps/${APP_ID}"

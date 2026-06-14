@@ -6,6 +6,7 @@ __pycache__/
 /bin/dnglab
 /.dnglab-cargo/
 /.cargo-home/
+/bin/.dnglab-rev
 /js/*.js
 /js/*.js.map
 /css/*.css

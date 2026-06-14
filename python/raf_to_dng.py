@@ -58,7 +58,7 @@ def convert_raf(
     *,
     overwrite: bool = False,
     app_root: str | None = None,
-    allow_tiff_fallback: bool = True,
+    allow_tiff_fallback: bool = False,
 ) -> str:
     out = Path(output_path)
     if out.suffix.lower() != '.dng':

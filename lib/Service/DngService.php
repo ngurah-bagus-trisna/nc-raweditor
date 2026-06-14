@@ -30,10 +30,9 @@ class DngService {
 
 		$baseName = pathinfo($file->getName(), PATHINFO_FILENAME);
 		$dngName = $baseName . '.dng';
-		$tiffName = $baseName . '.tif';
 
-		if (!$overwrite && ($parent->nodeExists($dngName) || $parent->nodeExists($tiffName))) {
-			throw new \RuntimeException('Converted file already exists');
+		if (!$overwrite && $parent->nodeExists($dngName)) {
+			throw new \RuntimeException('DNG file already exists');
 		}
 
 		$sourcePath = $this->rawFileService->getReadablePath($file);
@@ -44,6 +43,7 @@ class DngService {
 			'--path' => $sourcePath,
 			'--out' => $tempOut,
 			'--app-root' => $appRoot,
+			'--no-tiff-fallback' => '',
 		];
 		if ($overwrite) {
 			$scriptParams['--overwrite'] = '';
@@ -77,13 +77,11 @@ class DngService {
 
 		$userFolder = $this->rawFileService->getUserFolder();
 
-		$ext = strtolower(pathinfo($outName, PATHINFO_EXTENSION));
-
 		return [
 			'fileid' => $newFile->getId(),
 			'name' => $newFile->getName(),
 			'path' => $userFolder->getRelativePath($newFile->getPath()) ?? $newFile->getName(),
-			'format' => $ext === 'dng' ? 'dng' : 'tiff',
+			'format' => 'dng',
 		];
 	}
 }

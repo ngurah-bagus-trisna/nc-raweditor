@@ -288,15 +288,7 @@ export default {
 				})
 				const { converted, results, errors } = res.data
 				if (converted > 0) {
-					const dngCount = (results || []).filter((r) => r.format === 'dng').length
-					const tiffCount = converted - dngCount
-					if (tiffCount > 0 && dngCount > 0) {
-						showSuccess(this.t('raweditor', 'Converted {dng} to DNG and {tiff} to 16-bit TIFF', { dng: dngCount, tiff: tiffCount }))
-					} else if (tiffCount > 0) {
-						showSuccess(this.t('raweditor', 'Converted {count} photos to 16-bit TIFF (DNG not supported for this camera yet)', { count: tiffCount }))
-					} else {
-						showSuccess(this.t('raweditor', 'Converted {count} photos to DNG', { count: converted }))
-					}
+					showSuccess(this.t('raweditor', 'Converted {count} photos to DNG', { count: converted }))
 				}
 				if (errors?.length > 0) {
 					const first = errors[0].error || this.t('raweditor', 'Conversion failed')

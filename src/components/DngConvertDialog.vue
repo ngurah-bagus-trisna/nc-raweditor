@@ -37,7 +37,7 @@ export default {
 			return this.t('raweditor', 'Convert to DNG ({count})', { count: this.count })
 		},
 		description() {
-			return this.t('raweditor', 'Convert selected .raf files to DNG in the same folder for editing on Android (Lightroom Mobile, etc.). If DNG is not supported for your camera model yet, a 16-bit TIFF is created instead.')
+			return this.t('raweditor', 'Convert selected .raf files to DNG in the same folder for editing in Snapseed or Lightroom Mobile on Android.')
 		},
 		buttons() {
 			return [
