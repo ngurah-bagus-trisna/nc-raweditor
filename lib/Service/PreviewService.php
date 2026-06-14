@@ -89,6 +89,7 @@ class PreviewService {
 
 	public function warmThumb(File $file): void {
 		if ($this->hasThumbCache($file)) {
+			$this->rawFileMapper->markThumbReady($file->getId());
 			return;
 		}
 		$this->getPreviewContent($file, 'thumb');

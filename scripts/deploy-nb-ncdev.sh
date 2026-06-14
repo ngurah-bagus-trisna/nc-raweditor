@@ -37,6 +37,9 @@ lxc exec "${CONTAINER}" -- bash -c "apt-get update -qq && apt-get install -y -qq
 echo "==> Setting up Python venv"
 lxc exec "${CONTAINER}" -- bash -c "cd ${NC_ROOT}/apps/${APP_ID} && python3 -m venv .venv && .venv/bin/pip install -q -r python/requirements.txt"
 
+echo "==> Installing PHP autoload (composer)"
+lxc exec "${CONTAINER}" -- bash -c "cd ${NC_ROOT}/apps/${APP_ID} && COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload -o --classmap-authoritative --no-interaction"
+
 echo "==> Installing dnglab for RAF -> DNG conversion (may build from source)"
 lxc exec "${CONTAINER}" -- bash -c "cd ${NC_ROOT}/apps/${APP_ID} && apt-get install -y -qq cargo rustc pkg-config libssl-dev 2>/dev/null || true && bash scripts/install-dnglab.sh"
 

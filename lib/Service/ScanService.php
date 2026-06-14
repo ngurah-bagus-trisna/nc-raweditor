@@ -8,6 +8,7 @@ use OCA\RawEditor\AppInfo\Application;
 use OCA\RawEditor\BackgroundJob\ScanUserJob;
 use OCA\RawEditor\Db\RawFile;
 use OCA\RawEditor\Db\RawFileMapper;
+use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\BackgroundJob\IJobList;
 use OCP\Files\File;
 use OCP\Files\Folder;
@@ -21,6 +22,13 @@ class ScanService {
 	private const CONFIG_SCAN_LAST_AT = 'scan_last_at';
 	private const CONFIG_SCAN_QUEUED_AT = 'scan_queued_at';
 	private const CONFIG_SCAN_LAST_RESULT = 'scan_last_result';
+
+	/** @var string[] */
+	private const RAF_MIMES = [
+		'image/x-dcraw',
+		'image/x-fuji-raf',
+		'image/x-raw',
+	];
 
 	public function __construct(
 		private readonly SettingsService $settingsService,
@@ -241,21 +249,71 @@ class ScanService {
 	 * @param array<int, true> $seen
 	 */
 	private function scanFolder(Folder $folder, int $rootFolderId, string $owner, array &$seen, int &$added, int &$updated): void {
+		foreach ($this->findRafFilesInFolder($folder) as $node) {
+			$fileId = $node->getId();
+			$seen[$fileId] = true;
+			$this->upsertFile($node, $rootFolderId, $owner, $added, $updated);
+		}
+	}
+
+	/**
+	 * @return File[]
+	 */
+	private function findRafFilesInFolder(Folder $folder): array {
+		$found = [];
+		$seenIds = [];
+
+		foreach (self::RAF_MIMES as $mime) {
+			try {
+				foreach ($folder->searchByMime($mime) as $node) {
+					if (!($node instanceof File) || !UtilsService::isRafFile($node->getName())) {
+						continue;
+					}
+					$id = $node->getId();
+					if (!isset($seenIds[$id])) {
+						$seenIds[$id] = true;
+						$found[] = $node;
+					}
+				}
+			} catch (\Throwable $e) {
+				$this->logger->warning('RAW Editor mime search failed for ' . $mime . ': ' . $e->getMessage(), [
+					'app' => Application::APP_ID,
+				]);
+			}
+		}
+
+		if ($found !== []) {
+			return $found;
+		}
+
+		return $this->findRafFilesRecursive($folder);
+	}
+
+	/**
+	 * @return File[]
+	 */
+	private function findRafFilesRecursive(Folder $folder): array {
+		$found = [];
 		try {
 			$listing = $folder->getDirectoryListing();
-		} catch (\Throwable) {
-			return;
+		} catch (\Throwable $e) {
+			$this->logger->warning('RAW Editor folder listing failed: ' . $e->getMessage(), [
+				'app' => Application::APP_ID,
+			]);
+			return $found;
 		}
 
 		foreach ($listing as $node) {
 			if ($node instanceof Folder) {
-				$this->scanFolder($node, $rootFolderId, $owner, $seen, $added, $updated);
+				foreach ($this->findRafFilesRecursive($node) as $file) {
+					$found[] = $file;
+				}
 			} elseif ($node instanceof File && UtilsService::isRafFile($node->getName())) {
-				$fileId = $node->getId();
-				$seen[$fileId] = true;
-				$this->upsertFile($node, $rootFolderId, $owner, $added, $updated);
+				$found[] = $node;
 			}
 		}
+
+		return $found;
 	}
 
 	private function upsertFile(File $node, int $rootFolderId, string $owner, int &$added, int &$updated): void {
@@ -265,7 +323,7 @@ class ScanService {
 		try {
 			$this->rawFileMapper->findByFileId($fileId);
 			$isNew = false;
-		} catch (NotFoundException) {
+		} catch (DoesNotExistException) {
 		}
 
 		$entity = new RawFile();

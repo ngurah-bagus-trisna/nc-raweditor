@@ -64,10 +64,36 @@ class RawFileMapper extends QBMapper {
 			}
 			$existing->setMtime($entity->getMtime());
 			$existing->setSize($entity->getSize());
-			$this->update($existing);
+			$this->updateRawFile($existing);
 		} catch (DoesNotExistException) {
-			$this->insert($entity);
+			$this->insertRawFile($entity);
 		}
+	}
+
+	private function insertRawFile(RawFile $entity): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->insert($this->getTableName())
+			->values([
+				'fileid' => $qb->createNamedParameter((int)$entity->getFileid()),
+				'owner' => $qb->createNamedParameter($entity->getOwner()),
+				'folder_id' => $qb->createNamedParameter((int)$entity->getFolderId()),
+				'mtime' => $qb->createNamedParameter((int)$entity->getMtime()),
+				'size' => $qb->createNamedParameter((int)$entity->getSize()),
+				'thumb_ready' => $qb->createNamedParameter((int)($entity->getThumbReady() ?? 0)),
+			]);
+		$qb->executeStatement();
+	}
+
+	private function updateRawFile(RawFile $entity): void {
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('owner', $qb->createNamedParameter($entity->getOwner()))
+			->set('folder_id', $qb->createNamedParameter((int)$entity->getFolderId()))
+			->set('mtime', $qb->createNamedParameter((int)$entity->getMtime()))
+			->set('size', $qb->createNamedParameter((int)$entity->getSize()))
+			->set('thumb_ready', $qb->createNamedParameter((int)$entity->getThumbReady()))
+			->where($qb->expr()->eq('fileid', $qb->createNamedParameter((int)$entity->getFileid())));
+		$qb->executeStatement();
 	}
 
 	public function deleteByFileId(int $fileId): void {
@@ -137,11 +163,10 @@ class RawFileMapper extends QBMapper {
 	}
 
 	public function markThumbReady(int $fileId): void {
-		try {
-			$entity = $this->findByFileId($fileId);
-			$entity->setThumbReady(1);
-			$this->update($entity);
-		} catch (DoesNotExistException) {
-		}
+		$qb = $this->db->getQueryBuilder();
+		$qb->update($this->getTableName())
+			->set('thumb_ready', $qb->createNamedParameter(1))
+			->where($qb->expr()->eq('fileid', $qb->createNamedParameter($fileId)));
+		$qb->executeStatement();
 	}
 }
